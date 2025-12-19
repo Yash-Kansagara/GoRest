@@ -63,14 +63,21 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 	// applied/runs from bottom
 	handler := middlewares.CompressionMiddleware(mux)
 	handler = middlewares.SecurityHeaders(handler)
-	handler = middlewares.Cors(handler)
 	handler = middlewares.RateLimiterMiddleware(handler)
+	// can move config somewhere else
+	handler = middlewares.HPPMiddleware(handler, &middlewares.HppMiddlewareConfig{
+		VerifyBodyForm:      true,
+		VerifyQuery:         true,
+		AllowedBodyFormKeys: []string{"name", "id"},
+		AllowedQueryKeys:    []string{"name", "id"},
+	})
+	handler = middlewares.Cors(handler)
+
 	return handler
 }
 
 func logReqDetails(req *http.Request) {
-	log.Println("Path: ", req.URL.Path)
-	log.Println("Method: ", req.Method)
+	log.Println(req.Method, req.URL.Path)
 }
 
 func productHandler(w http.ResponseWriter, r *http.Request) {
