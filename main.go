@@ -2,33 +2,23 @@ package main
 
 import (
 	"context"
-	"io"
+	"flag"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Yash-Kansagara/GoRest/internal/server"
 )
 
-func handleRoot(res http.ResponseWriter, req *http.Request) {
-	io.WriteString(res, "Works")
-}
-
 func main() {
-
+	flag.Parse()
 	// graceful shutdown of process
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
 	// start http server
-	go func() {
-		http.HandleFunc("/", handleRoot)
-		log.Println("http server starting...")
-		err := http.ListenAndServe("127.0.0.1:9090", nil)
-		if err != nil {
-			log.Fatalln("Error starting http server")
-		}
-	}()
+	go server.Start()
 
 	// wait for interrupt
 	log.Println("main waiting...")
