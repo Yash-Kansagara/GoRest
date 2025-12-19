@@ -25,12 +25,9 @@ func Start() {
 
 	mux := http.NewServeMux()
 
-	// apply middlewares
-	handler := middlewares.SecurityHeaders(mux)
-
 	srv := &http.Server{
 		Addr:    ":9090",
-		Handler: handler,
+		Handler: ApplyMiddlewares(mux),
 	}
 
 	if enableTLS {
@@ -60,6 +57,12 @@ func Start() {
 		}
 	}
 
+}
+
+func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
+	handler := middlewares.Cors(mux)
+	handler = middlewares.SecurityHeaders(handler)
+	return handler
 }
 
 func logReqDetails(req *http.Request) {

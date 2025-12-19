@@ -1,10 +1,13 @@
 package middlewares
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		log.Println("SecurityHeaders")
 		// do not allow browsers to prefetch DNS
 		w.Header().Set("X-DNS-Prefetch-Control", "off")
 		// deny page inside <iframe>
@@ -16,7 +19,10 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// don't try to determine content type, trust what is sent
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 
+		// allow only HTTPS
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+
+		// dont allow content from different source
 		w.Header().Set("Content-Security-Policy", "default-src 'self'")
 
 		w.Header().Set("Referrer-Policy", "no-referrer")
