@@ -60,8 +60,10 @@ func Start() {
 }
 
 func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
-	handler := middlewares.Cors(mux)
+	// applied/runs from bottom
+	handler := middlewares.CompressionMiddleware(mux)
 	handler = middlewares.SecurityHeaders(handler)
+	handler = middlewares.Cors(handler)
 	return handler
 }
 
