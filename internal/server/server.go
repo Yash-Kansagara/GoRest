@@ -64,6 +64,7 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 	handler := middlewares.CompressionMiddleware(mux)
 	handler = middlewares.SecurityHeaders(handler)
 	handler = middlewares.Cors(handler)
+	handler = middlewares.RateLimiterMiddleware(handler)
 	return handler
 }
 

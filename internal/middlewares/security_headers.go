@@ -1,13 +1,11 @@
 package middlewares
 
 import (
-	"log"
 	"net/http"
 )
 
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("SecurityHeaders")
 		// do not allow browsers to prefetch DNS
 		w.Header().Set("X-DNS-Prefetch-Control", "off")
 		// deny page inside <iframe>
