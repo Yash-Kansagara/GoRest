@@ -27,6 +27,22 @@ type ProductResponse struct {
 	Data   []Product `json:"data"`
 }
 
+func ProductHandler(w http.ResponseWriter, r *http.Request) {
+	logReqDetails(r)
+	switch r.Method {
+	case http.MethodGet:
+		GetProductHandler(w, r)
+	case http.MethodPost:
+		PostProductHandler(w, r)
+	case http.MethodPatch:
+		w.Write([]byte("products PATCH"))
+	case http.MethodPut:
+		w.Write([]byte("products PUT"))
+	case http.MethodDelete:
+		w.Write([]byte("products DELETE"))
+	}
+}
+
 func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()

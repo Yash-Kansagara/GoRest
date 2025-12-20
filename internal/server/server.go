@@ -7,58 +7,58 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/Yash-Kansagara/GoRest/internal/middlewares"
 	"golang.org/x/net/http2"
 )
 
-var enableTLS bool = true
-
-func loadTLS() *tls.Config {
-	conf := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-	return conf
-}
-
 // start http server
 func Start() {
 
 	apiPort := os.Getenv("API_PORT")
-	mux := http.NewServeMux()
+	TLSEnable, _ := strconv.ParseBool(os.Getenv("TLS_ENABLE"))
 
+	// setup http server
+	mux := PrepareMux()
+	handler := ApplyMiddlewares(mux)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", apiPort),
-		Handler: ApplyMiddlewares(mux),
+		Handler: handler,
 	}
-
-	if enableTLS {
-		srv.TLSConfig = loadTLS()
-	}
-
 	defer srv.Close()
 
-	mux.HandleFunc("/", handleRoot)
-	mux.HandleFunc("/product", productHandler)
+	// check TLS config
+	if TLSEnable {
+		srv.TLSConfig = getTLSConfig()
+	}
 
+	// configure server
 	err := http2.ConfigureServer(srv, &http2.Server{})
 	if err != nil {
 		log.Fatal("Failed Confuguring http2 server", err)
 	}
-	fmt.Println("server running...")
 
-	if enableTLS {
+	// start HTTP(S) server
+	if TLSEnable {
 		err = srv.ListenAndServeTLS("cert.pem", "key.pem")
 		if err != nil {
-			log.Fatal("Failed starting https server", err)
+			log.Fatal("Failed starting HTTPS server", err)
 		}
 	} else {
 		err = srv.ListenAndServe()
 		if err != nil {
-			log.Fatal("Failed starting http server", err)
+			log.Fatal("Failed starting HTTP server", err)
 		}
 	}
 
+}
+
+func PrepareMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleRoot)
+	mux.HandleFunc("/product", ProductHandler)
+	return mux
 }
 
 func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
@@ -78,28 +78,18 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 	return handler
 }
 
+func getTLSConfig() *tls.Config {
+	conf := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	return conf
+}
+
 func logReqDetails(req *http.Request) {
 	log.Println(req.Method, req.URL.Path)
 }
 
-func productHandler(w http.ResponseWriter, r *http.Request) {
-	logReqDetails(r)
-	switch r.Method {
-	case http.MethodGet:
-		GetProductHandler(w, r)
-	case http.MethodPost:
-		PostProductHandler(w, r)
-	case http.MethodPatch:
-		w.Write([]byte("products PATCH"))
-	case http.MethodPut:
-		w.Write([]byte("products PUT"))
-	case http.MethodDelete:
-		w.Write([]byte("products DELETE"))
-	}
-}
-
 func handleRoot(res http.ResponseWriter, req *http.Request) {
 	logReqDetails(req)
-
 	io.WriteString(res, "Works\n")
 }
