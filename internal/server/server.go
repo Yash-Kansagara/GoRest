@@ -69,7 +69,7 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 		VerifyBodyForm:      true,
 		VerifyQuery:         true,
 		AllowedBodyFormKeys: []string{"name", "id"},
-		AllowedQueryKeys:    []string{"name", "id"},
+		AllowedQueryKeys:    []string{"sortBy", "sortOrder", "id", "name"},
 	})
 	handler = middlewares.Cors(handler)
 
@@ -86,7 +86,7 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		GetProductHandler(w, r)
 	case http.MethodPost:
-		w.Write([]byte("products POST"))
+		PostProductHandler(w, r)
 	case http.MethodPatch:
 		w.Write([]byte("products PATCH"))
 	case http.MethodPut:
