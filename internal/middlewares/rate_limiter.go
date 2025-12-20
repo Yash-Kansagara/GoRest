@@ -14,7 +14,7 @@ reqPerSec = number of requests per second for each unique client id
 burst = max requests at once allowed when enough tokens are available
 */
 func RateLimiterMiddleware(next http.Handler, reqPerSec int, burst int) http.Handler {
-	rateLimiter := utils.NewRateLimiter(10, 10)
+	rateLimiter := utils.NewRateLimiter(reqPerSec, burst)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		host, _, err := net.SplitHostPort(r.RemoteAddr)

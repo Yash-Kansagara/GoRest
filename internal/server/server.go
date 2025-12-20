@@ -63,7 +63,7 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 	// applied/runs from bottom
 	handler := middlewares.CompressionMiddleware(mux)
 	handler = middlewares.SecurityHeaders(handler)
-	handler = middlewares.RateLimiterMiddleware(handler)
+	handler = middlewares.RateLimiterMiddleware(handler, 10, 10)
 	// can move config somewhere else
 	handler = middlewares.HPPMiddleware(handler, &middlewares.HppMiddlewareConfig{
 		VerifyBodyForm:      true,
@@ -84,7 +84,7 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 	logReqDetails(r)
 	switch r.Method {
 	case http.MethodGet:
-		w.Write([]byte("products GET"))
+		GetProductHandler(w, r)
 	case http.MethodPost:
 		w.Write([]byte("products POST"))
 	case http.MethodPatch:
