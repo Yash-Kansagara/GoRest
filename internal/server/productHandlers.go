@@ -3,11 +3,13 @@ package server
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/Yash-Kansagara/GoRest/internal/db"
 	"github.com/Yash-Kansagara/GoRest/internal/model"
 )
 
@@ -134,9 +136,28 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	products = make([]Product, 0)
 	json.Unmarshal(bodyData, &products)
 
-	for _, p := range products {
-		p.Id = int(nextId)
-		nextId++
-		products = append(products, p)
+	db := db.GetDB()
+	queryBuilder := "INSERT INTO products (name, count) VALUES(?,?)"
+	stmt, err := db.Prepare(queryBuilder)
+	if err != nil {
+		http.Error(w, "ERROR Adding Product ", http.StatusInternalServerError)
+		return
 	}
+
+	for i, p := range products {
+		res, err := stmt.Exec(p.Name, p.Count)
+		if err != nil {
+			log.Println("failed to insert", p)
+			continue
+		}
+
+		id, _ := res.LastInsertId()
+		products[i].Id = int(id)
+	}
+
+	bodyData, err = json.Marshal(products)
+	if err != nil {
+		http.Error(w, "ERROR parsing Products", http.StatusInternalServerError)
+	}
+	w.Write(bodyData)
 }

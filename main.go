@@ -20,9 +20,11 @@ func main() {
 	}
 
 	// connect to db
-	if _, err := db.ConnectDB(); err != nil {
+	sqlDB, err := db.ConnectDB()
+	if err != nil {
 		panic("could not connect to DB")
 	}
+	defer sqlDB.Close()
 
 	// graceful shutdown of process
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)

@@ -9,6 +9,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var sqlDB *sql.DB
+
 func ConnectDB() (*sql.DB, error) {
 
 	dbUser := os.Getenv("DB_USER")
@@ -33,6 +35,10 @@ func ConnectDB() (*sql.DB, error) {
 	} else {
 		log.Println("Ping successful")
 	}
-
+	sqlDB = db
 	return db, nil
+}
+
+func GetDB() *sql.DB {
+	return sqlDB
 }
