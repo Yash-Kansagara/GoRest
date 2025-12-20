@@ -2,11 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/Yash-Kansagara/GoRest/internal/db"
@@ -14,14 +13,6 @@ import (
 )
 
 type Product model.Product
-
-var products []Product = []Product{
-	{Id: 1, Name: "Z", Count: 100},
-	{Id: 2, Name: "Y", Count: 10},
-	{Id: 3, Name: "X", Count: 22},
-}
-
-var nextId uint = 4
 
 type ProductResponse struct {
 	Status int       `json:"status"`
@@ -47,83 +38,77 @@ func ProductHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 
+	var stringBuilder *strings.Builder = &strings.Builder{}
 	query := r.URL.Query()
-	respProducts := products
 
+	stringBuilder.WriteString("SELECT * FROM products where 1=1 ")
 	// filter
 	filterID := query.Get("id")
 	filterName := query.Get("name")
-	respProducts = applyFilter(filterID, respProducts, filterName)
+	applyFilter(stringBuilder, filterID, filterName)
 
 	// apply sort
 	sortBy := query.Get("sortBy")
 	sortOrder := query.Get("sortOrder")
-	if len(sortBy) > 0 {
-		applySort(sortBy, sortOrder, respProducts)
+	applySort(stringBuilder, sortBy, sortOrder)
+
+	stringBuilder.WriteRune(';')
+	// fetch data from db
+	db := db.GetDB()
+	stmt, err := db.Prepare(stringBuilder.String())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "ERROR fetching data 101", http.StatusInternalServerError)
+		return
 	}
 
+	rows, err := stmt.Query()
+
+	if err != nil {
+		http.Error(w, "ERROR fetching data 102", http.StatusInternalServerError)
+	}
+
+	p := Product{}
+	resp := []Product{}
+	for rows.Next() {
+		rows.Scan(&p.Id, &p.Name, &p.Count)
+		resp = append(resp, p)
+	}
 	data := ProductResponse{
 		Status: http.StatusOK,
-		Count:  len(respProducts),
-		Data:   respProducts,
+		Count:  len(resp),
+		Data:   resp,
 	}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		http.Error(w, "Error reading products", http.StatusInternalServerError)
 	} else {
-		w.Header().Add("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 		w.Write(jsonData)
 	}
 }
 
-func applyFilter(filterID string, respProducts []Product, filterName string) []Product {
+func applyFilter(sb *strings.Builder, filterID string, filterName string) *strings.Builder {
 	if len(filterID) > 0 {
-		idNum, e := strconv.Atoi(filterID)
-		if e == nil {
-			for i, p := range products {
-				if p.Id == idNum {
-					respProducts = respProducts[i : i+1]
-					break
-				}
-			}
-		}
-	} else if len(filterName) > 0 {
-
-		for i, p := range products {
-			if p.Name == filterName {
-				respProducts = respProducts[i : i+1]
-				break
-			}
-		}
+		sb.WriteString(fmt.Sprintf("AND id='%s' ", filterID))
 	}
-	return respProducts
+	if len(filterName) > 0 {
+
+		sb.WriteString(fmt.Sprintf("AND name='%s' ", filterName))
+	}
+	return sb
 }
 
-func applySort(sortBy string, sortOrder string, products []Product) {
-	ascending := true
-	if len(sortOrder) > 0 && sortOrder == "desc" {
-		ascending = false
-	}
-	var sortfunc func(a Product, b Product) int
-	switch sortBy {
-	case "id":
-		sortfunc = func(a Product, b Product) int {
-			if ascending {
-				return a.Id - b.Id
-			}
-			return b.Id - a.Id
+func applySort(sb *strings.Builder, sortBy string, sortOrder string) {
+	if len(sortBy) > 0 {
+		sortOrderQuery := "ASC"
+		if len(sortOrder) > 0 && sortOrder == "desc" {
+			sortOrderQuery = "DESC"
 		}
 
-	case "name":
-		sortfunc = func(a Product, b Product) int {
-			if ascending {
-				return strings.Compare(a.Name, b.Name)
-			}
-			return strings.Compare(b.Name, a.Name)
-		}
+		sb.WriteString(fmt.Sprintf("ORDER BY %s %s", sortBy, sortOrderQuery))
 	}
-	slices.SortFunc(products, sortfunc)
 }
 
 func PostProductHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +118,7 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error reading request", http.StatusInternalServerError)
 	}
 
-	products = make([]Product, 0)
+	products := make([]Product, 0)
 	json.Unmarshal(bodyData, &products)
 
 	db := db.GetDB()
@@ -159,5 +144,6 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "ERROR parsing Products", http.StatusInternalServerError)
 	}
+	w.Header().Set("Content-Type", "Application/json")
 	w.Write(bodyData)
 }
