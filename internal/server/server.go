@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Yash-Kansagara/GoRest/internal/middlewares"
 	"golang.org/x/net/http2"
@@ -23,10 +24,11 @@ func loadTLS() *tls.Config {
 // start http server
 func Start() {
 
+	apiPort := os.Getenv("API_PORT")
 	mux := http.NewServeMux()
 
 	srv := &http.Server{
-		Addr:    ":9090",
+		Addr:    fmt.Sprintf(":%s", apiPort),
 		Handler: ApplyMiddlewares(mux),
 	}
 
@@ -63,7 +65,7 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 	// applied/runs from bottom
 	handler := middlewares.CompressionMiddleware(mux)
 	handler = middlewares.SecurityHeaders(handler)
-	handler = middlewares.RateLimiterMiddleware(handler, 10, 10)
+	handler = middlewares.RateLimiterMiddleware(handler)
 	// can move config somewhere else
 	handler = middlewares.HPPMiddleware(handler, &middlewares.HppMiddlewareConfig{
 		VerifyBodyForm:      true,

@@ -4,16 +4,18 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 
 	utils "github.com/Yash-Kansagara/GoRest/internal/Utils"
 )
 
 /*
 rate limits requests based on client id (ip, name, token etc)
-reqPerSec = number of requests per second for each unique client id
-burst = max requests at once allowed when enough tokens are available
 */
-func RateLimiterMiddleware(next http.Handler, reqPerSec int, burst int) http.Handler {
+func RateLimiterMiddleware(next http.Handler) http.Handler {
+	reqPerSec, _ := strconv.Atoi(os.Getenv("RATE_LIMITER_RATE"))
+	burst, _ := strconv.Atoi(os.Getenv("RATE_LIMITER_BURST"))
 	rateLimiter := utils.NewRateLimiter(reqPerSec, burst)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

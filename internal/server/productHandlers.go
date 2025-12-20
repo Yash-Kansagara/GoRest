@@ -118,7 +118,7 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	products = make([]Product, 0)
 	json.Unmarshal(bodyData, &products)
 
-	for i, p := range products {
+	for _, p := range products {
 		p.Id = int(nextId)
 		nextId++
 		products = append(products, p)
