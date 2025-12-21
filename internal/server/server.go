@@ -39,9 +39,11 @@ func Start() {
 		log.Fatal("Failed Confuguring http2 server", err)
 	}
 
+	certFile := os.Getenv("TLS_CERT_FILEPATH")
+	keyFile := os.Getenv("TLS_KEY_FILEPATH")
 	// start HTTP(S) server
 	if TLSEnable {
-		err = srv.ListenAndServeTLS("cert.pem", "key.pem")
+		err = srv.ListenAndServeTLS(certFile, keyFile)
 		if err != nil {
 			log.Fatal("Failed starting HTTPS server", err)
 		}
