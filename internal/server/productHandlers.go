@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Yash-Kansagara/GoRest/internal/constants"
 	"github.com/Yash-Kansagara/GoRest/internal/db"
 	"github.com/Yash-Kansagara/GoRest/internal/model"
 )
@@ -75,7 +76,7 @@ func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Error reading products", http.StatusInternalServerError)
 	} else {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(constants.Header_ContentType, constants.ContentType_ApplicationJSON)
 		w.Write(jsonData)
 	}
 }
@@ -135,7 +136,7 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "ERROR parsing Products", http.StatusInternalServerError)
 	}
-	w.Header().Set("Content-Type", "Application/json")
+	w.Header().Set(constants.Header_ContentType, constants.ContentType_ApplicationJSON)
 	w.Write(bodyData)
 
 }
@@ -188,7 +189,7 @@ func PutProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rowsUpdated, err := res.RowsAffected(); err == nil {
-		w.Header().Set("Content-Type", "Application/json")
+		w.Header().Set(constants.Header_ContentType, constants.ContentType_ApplicationJSON)
 		response := fmt.Sprintf("{\"status\":200,\"rowsUpdated\":%d}", rowsUpdated)
 		w.Write([]byte(response))
 	} else {
@@ -211,7 +212,7 @@ func DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rowsUpdated, err := res.RowsAffected(); err == nil {
-		w.Header().Set("Content-Type", "Application/json")
+		w.Header().Set(constants.Header_ContentType, constants.ContentType_ApplicationJSON)
 		response := fmt.Sprintf("{\"status\":200,\"rowsDeleted\":%d}", rowsUpdated)
 		w.Write([]byte(response))
 	}
