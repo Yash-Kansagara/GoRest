@@ -18,7 +18,8 @@ func (gzipW *gzipResponseWrite) Write(b []byte) (int, error) {
 func NewGzipWriter(r http.ResponseWriter) (writer *gzipResponseWrite, close func()) {
 	wr := gzip.NewWriter(r)
 	gzWriter := &gzipResponseWrite{
-		writer: wr,
+		ResponseWriter: r,
+		writer:         wr,
 	}
 	return gzWriter, func() { wr.Close() }
 }

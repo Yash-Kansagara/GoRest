@@ -20,7 +20,7 @@ func Start() {
 	TLSEnable, _ := strconv.ParseBool(os.Getenv("TLS_ENABLE"))
 
 	// setup http server
-	mux := PrepareMux()
+	mux := GetRootMux()
 	handler := ApplyMiddlewares(mux)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", apiPort),
@@ -52,13 +52,6 @@ func Start() {
 		}
 	}
 
-}
-
-func PrepareMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handleRoot)
-	mux.HandleFunc("/product", ProductHandler)
-	return mux
 }
 
 func ApplyMiddlewares(mux *http.ServeMux) http.Handler {

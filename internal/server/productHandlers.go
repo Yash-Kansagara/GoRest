@@ -20,24 +20,15 @@ type ProductResponse struct {
 	Data   []Product `json:"data"`
 }
 
-func ProductHandler(w http.ResponseWriter, r *http.Request) {
-	logReqDetails(r)
-	switch r.Method {
-	case http.MethodGet:
-		GetProductHandler(w, r)
-	case http.MethodPost:
-		PostProductHandler(w, r)
-	case http.MethodPatch:
-		w.Write([]byte("products PATCH"))
-	case http.MethodPut:
-		w.Write([]byte("products PUT"))
-	case http.MethodDelete:
-		w.Write([]byte("products DELETE"))
-	}
+func RegisterProductsPath(mux *http.ServeMux) {
+	// mux := &http.ServeMux{}
+	mux.HandleFunc("GET /product", GetProductHandler)
+	mux.HandleFunc("POST /product", PostProductHandler)
+	mux.HandleFunc("PUT /product/{id}", PutProductHandler)
+	mux.HandleFunc("DELETE /product/{id}", DeleteProductHandler)
 }
 
 func GetProductHandler(w http.ResponseWriter, r *http.Request) {
-
 	var stringBuilder *strings.Builder = &strings.Builder{}
 	query := r.URL.Query()
 
@@ -146,4 +137,83 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "Application/json")
 	w.Write(bodyData)
+
+}
+
+func PutProductHandler(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("id")
+	if len(id) == 0 {
+		http.Error(w, "Invalid product id", http.StatusBadRequest)
+	}
+
+	bodyData, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "error reading request", http.StatusInternalServerError)
+	}
+
+	product := make(map[string]interface{})
+	err = json.Unmarshal(bodyData, &product)
+	if err != nil || len(product) == 0 {
+		http.Error(w, "Invalid Product details", http.StatusBadRequest)
+	}
+
+	allowedUpdates := map[string]struct{}{
+		"name":  struct{}{},
+		"count": struct{}{},
+	}
+
+	query := strings.Builder{}
+	query.WriteString("UPDATE products SET ")
+
+	setSnip := []string{}
+	values := []interface{}{}
+	for k, v := range product {
+		if _, allowed := allowedUpdates[k]; allowed {
+			setSnip = append(setSnip, fmt.Sprintf("%s = ?", k))
+			values = append(values, v)
+		}
+	}
+	query.WriteString(strings.Join(setSnip, ", "))
+	query.WriteString(" WHERE id = ?")
+	values = append(values, id)
+
+	print(query.String())
+
+	db := db.GetDB()
+	res, err := db.Exec(query.String(), values...)
+	if err != nil {
+		http.Error(w, "ERROR updating Product", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsUpdated, err := res.RowsAffected(); err == nil {
+		w.Header().Set("Content-Type", "Application/json")
+		response := fmt.Sprintf("{\"status\":200,\"rowsUpdated\":%d}", rowsUpdated)
+		w.Write([]byte(response))
+	} else {
+		http.Error(w, "ERROR updating Product 102", http.StatusInternalServerError)
+	}
+}
+
+func DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("id")
+	if len(id) == 0 {
+		http.Error(w, "Invalid product id", http.StatusBadRequest)
+	}
+
+	db := db.GetDB()
+	res, err := db.Exec("DELETE FROM products WHERE id=?", id)
+	if err != nil {
+		http.Error(w, "ERROR Deleting Product", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsUpdated, err := res.RowsAffected(); err == nil {
+		w.Header().Set("Content-Type", "Application/json")
+		response := fmt.Sprintf("{\"status\":200,\"rowsDeleted\":%d}", rowsUpdated)
+		w.Write([]byte(response))
+	}
+
 }

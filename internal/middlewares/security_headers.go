@@ -25,6 +25,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		w.Header().Set("Allow", "GET, POST, PUT, DELETE")
 		next.ServeHTTP(w, r)
 	})
 }
