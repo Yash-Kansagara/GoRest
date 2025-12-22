@@ -31,7 +31,7 @@ func HPPMiddleware(next http.Handler, config *HppMiddlewareConfig) http.Handler 
 func verifyFormData(config *HppMiddlewareConfig, r *http.Request) {
 	if config.VerifyBodyForm {
 		r.ParseForm() // parses only if Content-Type is x-www-form-urlencoded
-		for k, _ := range r.PostForm {
+		for k := range r.PostForm {
 			if slices.Contains(config.AllowedBodyFormKeys, k) == false {
 				delete(r.PostForm, k)
 				delete(r.Form, k)
@@ -43,7 +43,7 @@ func verifyFormData(config *HppMiddlewareConfig, r *http.Request) {
 func verifyQuery(config *HppMiddlewareConfig, r *http.Request) {
 	if config.VerifyQuery {
 		query := r.URL.Query()
-		for k, _ := range query {
+		for k := range query {
 			if slices.Contains(config.AllowedQueryKeys, k) == false {
 				query.Del(k)
 			}
