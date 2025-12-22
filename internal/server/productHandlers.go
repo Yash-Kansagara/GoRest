@@ -6,8 +6,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
+	utils "github.com/Yash-Kansagara/GoRest/internal/Utils"
 	"github.com/Yash-Kansagara/GoRest/internal/constants"
 	"github.com/Yash-Kansagara/GoRest/internal/db"
 	"github.com/Yash-Kansagara/GoRest/internal/model"
@@ -114,27 +116,46 @@ func PostProductHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(bodyData, &products)
 
 	db := db.GetDB()
-	queryBuilder := "INSERT INTO products (name, count) VALUES(?,?)"
-	stmt, err := db.Prepare(queryBuilder)
+	tx, err := db.Begin()
 	if err != nil {
-		http.Error(w, "ERROR Adding Product ", http.StatusInternalServerError)
+		http.Error(w, "Error starting transaction", http.StatusInternalServerError)
+		return
+	}
+
+	queryBuilder := "INSERT INTO products (name, count) VALUES(?,?)"
+	stmt, err := tx.Prepare(queryBuilder)
+	if err != nil {
+		http.Error(w, "ERROR Inserting Product ", http.StatusInternalServerError)
 		return
 	}
 
 	for i, p := range products {
+		if len(p.Name) == 0 || p.Count < 0 {
+			http.Error(w, "ERROR Inserting Products: Invalid value", http.StatusInternalServerError)
+			tx.Rollback()
+			return
+		}
 		res, err := stmt.Exec(p.Name, p.Count)
 		if err != nil {
-			log.Println("failed to insert", p)
-			continue
+			http.Error(w, "ERROR Inserting Products", http.StatusInternalServerError)
+			tx.Rollback()
+			return
 		}
 
 		id, _ := res.LastInsertId()
 		products[i].Id = int(id)
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		http.Error(w, "ERROR Trnsaction Failed", http.StatusInternalServerError)
+		return
+	}
+
 	bodyData, err = json.Marshal(products)
 	if err != nil {
 		http.Error(w, "ERROR parsing Products", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set(constants.Header_ContentType, constants.ContentType_ApplicationJSON)
 	w.Write(bodyData)
@@ -159,10 +180,9 @@ func PutProductHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid Product details", http.StatusBadRequest)
 	}
 
-	allowedUpdates := map[string]struct{}{
-		"name":  struct{}{},
-		"count": struct{}{},
-	}
+	allowedUpdates := utils.GetFieldsJSONTags(model.Product{})
+
+	utils.GetFieldsJSONTags(Product{})
 
 	query := strings.Builder{}
 	query.WriteString("UPDATE products SET ")
@@ -170,7 +190,7 @@ func PutProductHandler(w http.ResponseWriter, r *http.Request) {
 	setSnip := []string{}
 	values := []interface{}{}
 	for k, v := range product {
-		if _, allowed := allowedUpdates[k]; allowed {
+		if slices.Contains(allowedUpdates, k) {
 			setSnip = append(setSnip, fmt.Sprintf("%s = ?", k))
 			values = append(values, v)
 		}
