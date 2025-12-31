@@ -66,7 +66,7 @@ func ApplyMiddlewares(mux *http.ServeMux) http.Handler {
 		VerifyBodyForm:      true,
 		VerifyQuery:         true,
 		AllowedBodyFormKeys: []string{"name", "id"},
-		AllowedQueryKeys:    []string{"sortBy", "sortOrder", "id", "name"},
+		AllowedQueryKeys:    []string{"sortBy", "sortOrder", "id", "name", "limit", "page"},
 	})
 	handler = middlewares.Cors(handler)
 

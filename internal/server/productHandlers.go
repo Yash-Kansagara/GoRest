@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	utils "github.com/Yash-Kansagara/GoRest/internal/Utils"
@@ -46,7 +47,14 @@ func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 	sortOrder := query.Get("sortOrder")
 	applySort(stringBuilder, sortBy, sortOrder)
 
+	// limit
+	limit := query.Get("limit")
+	page := query.Get("page")
+	applyPaging(stringBuilder, limit, page)
+
 	stringBuilder.WriteRune(';')
+	fmt.Println(limit, page, r.URL.RawQuery)
+	fmt.Println("Q: ", stringBuilder.String())
 	// fetch data from db
 	db := db.GetDB()
 	stmt, err := db.Prepare(stringBuilder.String())
@@ -101,7 +109,23 @@ func applySort(sb *strings.Builder, sortBy string, sortOrder string) {
 			sortOrderQuery = "DESC"
 		}
 
-		sb.WriteString(fmt.Sprintf("ORDER BY %s %s", sortBy, sortOrderQuery))
+		sb.WriteString(fmt.Sprintf("ORDER BY %s %s ", sortBy, sortOrderQuery))
+	}
+}
+
+func applyPaging(sb *strings.Builder, limit string, page string) {
+	limitNo, err := strconv.Atoi(limit)
+	if err != nil {
+		return
+	}
+	pageNo, err := strconv.Atoi(page)
+	if err != nil {
+		return
+	}
+	// if limit == 0  or if page is -ve : ignore paging,
+	if limitNo > 0 && pageNo >= 0 {
+		offset := limitNo * pageNo
+		sb.WriteString(fmt.Sprintf("LIMIT %d OFFSET %d", limitNo, offset))
 	}
 }
 
